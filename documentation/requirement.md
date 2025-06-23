@@ -18,6 +18,65 @@ Centralized authentication and user management for all system users with role-ba
 - User profile management
 - Session management
 
+### Database Models
+
+#### User Entity
+```java
+@Entity
+@Table(name = "users")
+public class User {
+    private Long id;
+    private String username;      // unique
+    private String email;         // unique
+    private String password;      // encrypted
+    private String firstName;
+    private String lastName;
+    private String phoneNumber;
+    private Boolean isActive;
+    private Boolean isEmailVerified;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private Set<Role> roles;      // Many-to-Many relationship
+}
+```
+
+#### Role Entity
+```java
+@Entity
+@Table(name = "roles")
+public class Role {
+    private Long id;
+    private RoleName name;        // ROLE_ADMIN, ROLE_DOCTOR, ROLE_NURSE, ROLE_PATIENT
+    private String description;
+}
+```
+
+#### Role Enum
+```java
+public enum RoleName {
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_NURSE,
+    ROLE_PATIENT
+}
+```
+
+### API Endpoints
+
+#### Authentication Endpoints (/api/auth)
+- `POST /api/auth/signin` - User login
+- `POST /api/auth/signup` - User registration
+- `POST /api/auth/refresh` - Refresh JWT token
+- `POST /api/auth/validate` - Validate JWT token
+- `POST /api/auth/logout` - User logout
+
+#### User Management Endpoints (/api/users)
+- `GET /api/users` - Get all users (Admin, Doctor, Nurse only)
+- `GET /api/users/{id}` - Get user by ID
+- `GET /api/users/role/{roleName}` - Get users by role (Admin only)
+- `PUT /api/users/{id}` - Update user profile
+- `DELETE /api/users/{id}` - Delete user (Admin only)
+
 ### Spring Boot Dependencies (start.spring.io)
 ```
 - Spring Web
@@ -53,7 +112,7 @@ Centralized authentication and user management for all system users with role-ba
 ### Database Tables
 - users
 - roles
-- user_roles
+- user_roles (join table for many-to-many relationship)
 
 ---
 
