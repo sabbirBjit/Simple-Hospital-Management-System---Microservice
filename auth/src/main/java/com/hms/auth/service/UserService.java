@@ -1,6 +1,7 @@
 package com.hms.auth.service;
 
 import com.hms.auth.dto.SignupRequest;
+import com.hms.auth.dto.UpdateUserRequest;
 import com.hms.auth.dto.UserResponse;
 import com.hms.auth.model.Role;
 import com.hms.auth.model.RoleName;
@@ -79,7 +80,7 @@ public class UserService {
         user.setRoles(roles);
         User savedUser = userRepository.save(user);
 
-        // Send Kafka event
+        // Send Kafka event when user is created
         kafkaTemplate.send("user.created", "User created: " + savedUser.getUsername());
 
         return savedUser;
@@ -118,17 +119,50 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    public User updateUser(Long id, User userDetails) {
+    public User updateUser(Long id, UpdateUserRequest updateRequest) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        user.setFirstName(userDetails.getFirstName());
-        user.setLastName(userDetails.getLastName());
-        user.setEmail(userDetails.getEmail());
-        user.setPhoneNumber(userDetails.getPhoneNumber());
-        user.setIsActive(userDetails.getIsActive());
+        // Only update fields that are provided (not null)
+        if (updateRequest.getFirstName() != null && !updateRequest.getFirstName().trim().isEmpty()) {
+            user.setFirstName(updateRequest.getFirstName().trim());
+        }
+        
+        if (updateRequest.getLastName() != null && !updateRequest.getLastName().trim().isEmpty()) {
+            user.setLastName(updateRequest.getLastName().trim());
+        }
+        
+        if (updateRequest.getEmail() != null && !updateRequest.getEmail().trim().isEmpty()) {
+            // Check if email is already taken by another user
+            Optional<User> existingUser = userRepository.findByEmail(updateRequest.getEmail());
+            if (existingUser.isPresent() && !existingUser.get().getId().equals(id)) {
+                throw new RuntimeException("Email is already in use by another user");
+            }
+            user.setEmail(updateRequest.getEmail().trim());
+        }
+        
+        if (updateRequest.getPhoneNumber() != null && !updateRequest.getPhoneNumber().trim().isEmpty()) {
+            user.setPhoneNumber(updateRequest.getPhoneNumber().trim());
+        }
+        
+        if (updateRequest.getIsActive() != null) {
+            user.setIsActive(updateRequest.getIsActive());
+        }
 
         return userRepository.save(user);
+    }
+
+    // Keep the old method for backward compatibility but mark as deprecated
+    @Deprecated
+    public User updateUser(Long id, User userDetails) {
+        UpdateUserRequest updateRequest = new UpdateUserRequest();
+        updateRequest.setFirstName(userDetails.getFirstName());
+        updateRequest.setLastName(userDetails.getLastName());
+        updateRequest.setEmail(userDetails.getEmail());
+        updateRequest.setPhoneNumber(userDetails.getPhoneNumber());
+        updateRequest.setIsActive(userDetails.getIsActive());
+        
+        return updateUser(id, updateRequest);
     }
 
     public void deleteUser(Long id) {

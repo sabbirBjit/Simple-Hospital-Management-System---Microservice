@@ -28,6 +28,8 @@ public class JwtUtils {
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        
+        logger.debug("Generating JWT token for user: {}", userPrincipal.getUsername());
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
@@ -39,6 +41,8 @@ public class JwtUtils {
 
     public String generateRefreshToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        
+        logger.debug("Generating refresh token for user: {}", userPrincipal.getUsername());
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
@@ -53,13 +57,21 @@ public class JwtUtils {
     }
 
     public String getUserNameFromJwtToken(String token) {
-        return Jwts.parserBuilder().setSigningKey(key()).build()
-               .parseClaimsJws(token).getBody().getSubject();
+        try {
+            String username = Jwts.parserBuilder().setSigningKey(key()).build()
+                   .parseClaimsJws(token).getBody().getSubject();
+            logger.debug("Extracted username from token: {}", username);
+            return username;
+        } catch (Exception e) {
+            logger.error("Cannot extract username from JWT token: {}", e.getMessage());
+            throw new RuntimeException("Cannot extract username from JWT token", e);
+        }
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
+            logger.debug("JWT token is valid");
             return true;
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());

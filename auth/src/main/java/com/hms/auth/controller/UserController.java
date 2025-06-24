@@ -1,8 +1,11 @@
 package com.hms.auth.controller;
 
+import com.hms.auth.dto.ApiResponse;
 import com.hms.auth.dto.UserResponse;
+import com.hms.auth.dto.UpdateUserRequest;
 import com.hms.auth.model.User;
 import com.hms.auth.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,34 +24,54 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        List<UserResponse> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getAllUsers() {
+        try {
+            List<UserResponse> users = userService.getAllUsers();
+            return ResponseEntity.ok(new ApiResponse(true, "Users retrieved successfully", users));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Failed to retrieve users: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        Optional<UserResponse> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok)
-                  .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            Optional<UserResponse> user = userService.getUserById(id);
+            if (user.isPresent()) {
+                return ResponseEntity.ok(new ApiResponse(true, "User found", user.get()));
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Failed to retrieve user: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/role/{roleName}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<UserResponse>> getUsersByRole(@PathVariable String roleName) {
-        List<UserResponse> users = userService.getUsersByRole(roleName);
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getUsersByRole(@PathVariable String roleName) {
+        try {
+            List<UserResponse> users = userService.getUsersByRole(roleName);
+            return ResponseEntity.ok(new ApiResponse(true, 
+                    "Users with role " + roleName + " retrieved successfully", users));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Failed to retrieve users by role: " + e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userService.findByUsername(authentication.name).get().id == #id)")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+    @PreAuthorize("hasRole('ADMIN') or @userService.findByUsername(authentication.name).orElse(null)?.id == #id")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @Valid @RequestBody UpdateUserRequest updateRequest) {
         try {
-            User updatedUser = userService.updateUser(id, userDetails);
-            return ResponseEntity.ok(updatedUser);
+            User updatedUser = userService.updateUser(id, updateRequest);
+            return ResponseEntity.ok(new ApiResponse(true, "User updated successfully", updatedUser));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Failed to update user: " + e.getMessage()));
         }
     }
 
@@ -57,9 +80,10 @@ public class UserController {
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             userService.deleteUser(id);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok(new ApiResponse(true, "User deleted successfully"));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Failed to delete user: " + e.getMessage()));
         }
     }
 }

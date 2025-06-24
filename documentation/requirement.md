@@ -238,14 +238,16 @@ Handle all system notifications including appointment reminders and system alert
 - `appointment.reminder` - For sending reminders
 - `patient.registered` - When new patient is added
 
-### API Gateway (Optional but Recommended)
-Consider using Spring Cloud Gateway as an entry point for all services.
+### API Gateway
+Spring Cloud Gateway as an entry point for all services running on port 9000.
 
 **Gateway Dependencies:**
 ```
 - Gateway
 - Spring Boot DevTools
 - Spring Boot Actuator
+- Spring Security (for JWT validation)
+- WebFlux
 ```
 
 ---
@@ -310,7 +312,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: mySecretKey123456789mySecretKey123456789
+  secret: bXlTZWNyZXRLZXkxMjM0NTY3ODlteVNlY3JldEtleTEyMzQ1Njc4OW15U2VjcmV0S2V5MTIzNDU2Nzg5bXlTZWNyZXRLZXkxMjM0NTY3ODk=
   expiration: 86400000 # 24 hours in milliseconds
   refresh-expiration: 604800000 # 7 days in milliseconds
 
@@ -325,7 +327,7 @@ management:
 
 logging:
   level:
-    com.hospital.auth: DEBUG
+    com.hms.auth: DEBUG
     org.springframework.security: DEBUG
 ```
 
@@ -365,7 +367,7 @@ spring:
 
 # JWT Configuration for token validation
 jwt:
-  secret: mySecretKey123456789mySecretKey123456789
+  secret: bXlTZWNyZXRLZXkxMjM0NTY3ODlteVNlY3JldEtleTEyMzQ1Njc4OW15U2VjcmV0S2V5MTIzNDU2Nzg5bXlTZWNyZXRLZXkxMjM0NTY3ODk=
 
 # External Service URLs
 services:
@@ -383,7 +385,7 @@ management:
 
 logging:
   level:
-    com.hospital.patient: DEBUG
+    com.hms.patient: DEBUG
 ```
 
 #### Appointment Management Service - application.yml
@@ -422,7 +424,7 @@ spring:
 
 # JWT Configuration for token validation
 jwt:
-  secret: mySecretKey123456789mySecretKey123456789
+  secret: bXlTZWNyZXRLZXkxMjM0NTY3ODlteVNlY3JldEtleTEyMzQ1Njc4OW15U2VjcmV0S2V5MTIzNDU2Nzg5bXlTZWNyZXRLZXkxMjM0NTY3ODk=
 
 # External Service URLs
 services:
@@ -448,7 +450,7 @@ management:
 
 logging:
   level:
-    com.hospital.appointment: DEBUG
+    com.hms.appointment: DEBUG
 ```
 
 #### Notification Service - application.yml
@@ -518,78 +520,72 @@ management:
 
 logging:
   level:
-    com.hospital.notification: DEBUG
+    com.hms.notification: DEBUG
     org.springframework.mail: DEBUG
 ```
 
-#### API Gateway Service - application.yml (Optional)
-```yaml
-server:
-  port: 8080
+#### API Gateway Service - application.properties
+```properties
+# Server Configuration
+server.port=9000
 
-spring:
-  application:
-    name: api-gateway
-  
-  cloud:
-    gateway:
-      routes:
-        - id: auth-service
-          uri: http://localhost:8081
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=2
-        
-        - id: patient-service
-          uri: http://localhost:8082
-          predicates:
-            - Path=/api/patients/**
-          filters:
-            - StripPrefix=2
-        
-        - id: appointment-service
-          uri: http://localhost:8083
-          predicates:
-            - Path=/api/appointments/**
-          filters:
-            - StripPrefix=2
-        
-        - id: notification-service
-          uri: http://localhost:8084
-          predicates:
-            - Path=/api/notifications/**
-          filters:
-            - StripPrefix=2
-      
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "http://localhost:3000"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: true
+# Application Configuration
+spring.application.name=api-gateway
+
+# Disable the RouteLocator bean routes since we're using properties - Updated format
+spring.cloud.gateway.server.webflux.discovery.locator.enabled=false
+
+# Gateway Routes Configuration - Updated format
+spring.cloud.gateway.server.webflux.routes[0].id=auth-service
+spring.cloud.gateway.server.webflux.routes[0].uri=http://localhost:8081
+spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/api/auth/**
+
+spring.cloud.gateway.server.webflux.routes[1].id=user-service
+spring.cloud.gateway.server.webflux.routes[1].uri=http://localhost:8081
+spring.cloud.gateway.server.webflux.routes[1].predicates[0]=Path=/api/users/**
+
+spring.cloud.gateway.server.webflux.routes[2].id=patient-service
+spring.cloud.gateway.server.webflux.routes[2].uri=http://localhost:8082
+spring.cloud.gateway.server.webflux.routes[2].predicates[0]=Path=/api/patients/**
+
+spring.cloud.gateway.server.webflux.routes[3].id=appointment-service
+spring.cloud.gateway.server.webflux.routes[3].uri=http://localhost:8083
+spring.cloud.gateway.server.webflux.routes[3].predicates[0]=Path=/api/appointments/**
+
+spring.cloud.gateway.server.webflux.routes[4].id=notification-service
+spring.cloud.gateway.server.webflux.routes[4].uri=http://localhost:8084
+spring.cloud.gateway.server.webflux.routes[4].predicates[0]=Path=/api/notifications/**
+
+# CORS Configuration
+spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedOrigins=http://localhost:3000,http://localhost:9000
+spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedMethods=GET,POST,PUT,DELETE,OPTIONS
+spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedHeaders=*
+spring.cloud.gateway.globalcors.cors-configurations.[/**].allowCredentials=true
 
 # JWT Configuration for gateway-level authentication
-jwt:
-  secret: mySecretKey123456789mySecretKey123456789
+jwt.secret=bXlTZWNyZXRLZXkxMjM0NTY3ODlteVNlY3JldEtleTEyMzQ1Njc4OW15U2VjcmV0S2V5MTIzNDU2Nzg5bXlTZWNyZXRLZXkxMjM0NTY3ODk=
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,gateway
-  endpoint:
-    health:
-      show-details: always
+# Management Configuration
+management.endpoints.web.exposure.include=health,info,metrics,gateway
+management.endpoint.health.show-details=always
 
-logging:
-  level:
-    com.hospital.gateway: DEBUG
-    org.springframework.cloud.gateway: DEBUG
+# Logging Configuration
+logging.level.com.hms.apigateway=DEBUG
+logging.level.org.springframework.cloud.gateway=DEBUG
+logging.level.org.springframework.security=DEBUG
 ```
+
+### Access URLs
+- **API Gateway**: http://localhost:9000
+- **Auth Service Direct**: http://localhost:8081
+- **Patient Service Direct**: http://localhost:8082
+- **Appointment Service Direct**: http://localhost:8083
+- **Notification Service Direct**: http://localhost:8084
+
+### Gateway Routes
+All services are accessible through the API Gateway:
+- **Authentication**: http://localhost:9000/api/auth/*
+- **User Management**: http://localhost:9000/api/users/*
+- **Patient Management**: http://localhost:9000/api/patients/*
+- **Appointment Management**: http://localhost:9000/api/appointments/*
+- **Notifications**: http://localhost:9000/api/notifications/*

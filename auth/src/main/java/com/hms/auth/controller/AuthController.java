@@ -1,5 +1,6 @@
 package com.hms.auth.controller;
 
+import com.hms.auth.dto.ApiResponse;
 import com.hms.auth.dto.JwtResponse;
 import com.hms.auth.dto.LoginRequest;
 import com.hms.auth.dto.SignupRequest;
@@ -26,73 +27,77 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        JwtResponse jwtResponse = authService.authenticateUser(loginRequest);
-        return ResponseEntity.ok(jwtResponse);
+        try {
+            JwtResponse jwtResponse = authService.authenticateUser(loginRequest);
+            return ResponseEntity.ok(new ApiResponse(true, "Login successful", jwtResponse));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Authentication failed: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userService.existsByUsername(signUpRequest.getUsername())) {
+        try {
+            if (userService.existsByUsername(signUpRequest.getUsername())) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Username is already taken!"));
+            }
+
+            if (userService.existsByEmail(signUpRequest.getEmail())) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Email is already in use!"));
+            }
+
+            userService.createUser(signUpRequest);
+            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully!"));
+        } catch (Exception e) {
             return ResponseEntity.badRequest()
-                    .body(createErrorResponse("Error: Username is already taken!"));
+                    .body(new ApiResponse(false, "Registration failed: " + e.getMessage()));
         }
-
-        if (userService.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity.badRequest()
-                    .body(createErrorResponse("Error: Email is already in use!"));
-        }
-
-        userService.createUser(signUpRequest);
-
-        return ResponseEntity.ok(createSuccessResponse("User registered successfully!"));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        if (refreshToken == null) {
+        if (refreshToken == null || refreshToken.trim().isEmpty()) {
             return ResponseEntity.badRequest()
-                    .body(createErrorResponse("Refresh token is required"));
+                    .body(new ApiResponse(false, "Refresh token is required"));
         }
 
         try {
             JwtResponse jwtResponse = authService.refreshToken(refreshToken);
-            return ResponseEntity.ok(jwtResponse);
+            return ResponseEntity.ok(new ApiResponse(true, "Token refreshed successfully", jwtResponse));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
-                    .body(createErrorResponse("Invalid refresh token"));
+                    .body(new ApiResponse(false, "Token refresh failed: " + e.getMessage()));
         }
     }
 
     @PostMapping("/validate")
     public ResponseEntity<?> validateToken(@RequestBody Map<String, String> request) {
         String token = request.get("token");
-        if (token == null) {
+        if (token == null || token.trim().isEmpty()) {
             return ResponseEntity.badRequest()
-                    .body(createErrorResponse("Token is required"));
+                    .body(new ApiResponse(false, "Token is required"));
         }
 
-        boolean isValid = authService.validateToken(token);
-        Map<String, Object> response = new HashMap<>();
-        response.put("valid", isValid);
-        return ResponseEntity.ok(response);
+        try {
+            boolean isValid = authService.validateToken(token);
+            Map<String, Object> validationResult = new HashMap<>();
+            validationResult.put("valid", isValid);
+
+            return ResponseEntity.ok(new ApiResponse(true,
+                    isValid ? "Token is valid" : "Token is invalid",
+                    validationResult));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Token validation failed: " + e.getMessage()));
+        }
     }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser() {
-        // In a real application, you might want to add the token to a blacklist
-        return ResponseEntity.ok(createSuccessResponse("User logged out successfully!"));
-    }
-
-    private Map<String, String> createErrorResponse(String message) {
-        Map<String, String> response = new HashMap<>();
-        response.put("message", message);
-        return response;
-    }
-
-    private Map<String, String> createSuccessResponse(String message) {
-        Map<String, String> response = new HashMap<>();
-        response.put("message", message);
-        return response;
+        return ResponseEntity.ok(new ApiResponse(true, "User logged out successfully!"));
     }
 }
