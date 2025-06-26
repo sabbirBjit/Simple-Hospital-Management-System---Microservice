@@ -1,7 +1,7 @@
 # User Roles and Permissions Documentation
 
 ## Overview
-The Hospital Management System implements a role-based access control (RBAC) system with four distinct user roles. Each role has specific permissions and access levels throughout the system.
+The Hospital Management System implements a role-based access control (RBAC) system with four distinct user roles. Each role has specific permissions and access levels throughout the system, with special emphasis on patient data protection and medical information access control.
 
 ## Role Hierarchy
 
@@ -10,30 +10,35 @@ ROLE_ADMIN (Highest Authority)
     ├── Full system access
     ├── User management
     ├── System configuration
+    ├── Patient data management
     └── All lower role permissions
 
 ROLE_DOCTOR
-    ├── Patient medical records
+    ├── Patient medical records (full access)
     ├── Appointment management
     ├── Prescription management
-    └── Medical history access
+    ├── Medical history access
+    ├── Patient statistics and analytics
+    └── Medical professional privileges
 
 ROLE_NURSE
     ├── Patient basic information
     ├── Appointment viewing/basic management
-    ├── Medical record viewing
-    └── Patient care coordination
+    ├── Medical record viewing (read-only)
+    ├── Patient care coordination
+    └── Contact information updates
 
 ROLE_PATIENT (Base Level)
     ├── Own profile management
+    ├── Own medical records (read-only)
     ├── Appointment booking
-    ├── Own medical records
+    ├── Profile completeness tracking
     └── Basic system interaction
 ```
 
 ---
 
-## Role Definitions
+## Enhanced Role Definitions
 
 ### 1. ROLE_ADMIN
 **Description:** System administrators with full access to all features and data.
@@ -131,33 +136,51 @@ ROLE_PATIENT (Base Level)
 
 ---
 
-### 4. ROLE_PATIENT
-**Description:** Patients who access their own medical information and manage appointments.
+### 4. ROLE_PATIENT (Enhanced)
+**Description:** Patients who access their own medical information and manage appointments with comprehensive profile management capabilities.
 
 **Core Responsibilities:**
 - Personal health information management
 - Appointment booking and management
-- Profile updates
-- Medical record viewing
+- Profile updates and completeness tracking
+- Medical record viewing (own records only)
+- Emergency contact management
+- Insurance information management
 
-**Permissions:**
-- ✅ View and update own profile
-- ✅ View own medical records
+**Enhanced Permissions:**
+- ✅ View and update own comprehensive profile
+- ✅ View own medical records and history
 - ✅ Book and manage own appointments
 - ✅ View own appointment history
-- ✅ Update own contact information
+- ✅ Update own contact and address information
+- ✅ Manage own emergency contacts
+- ✅ Update insurance information
+- ✅ View profile completeness status
+- ✅ Track own medical conditions and allergies
+- ✅ Manage medication list
 - ✅ Change own password
+- ✅ Access own patient statistics
 - ❌ Access other patients' information
 - ❌ View system users
 - ❌ Access administrative functions
-- ❌ Modify medical records
+- ❌ Modify medical diagnoses or prescriptions
+- ❌ Access patient analytics or system-wide data
 
-**API Access:**
+**API Access (Enhanced):**
 - Authentication endpoints
-- Own profile management
+- Own profile management (`/api/patients/my-profile`)
 - Own medical records (read-only)
 - Own appointment management
 - Limited patient endpoints (own data only)
+- Profile update endpoints (`/api/patients/profile/*`)
+
+**Patient-Specific Features:**
+- **Profile Completeness Tracking**: System tracks completion of required profile fields
+- **Medical Information Management**: Comprehensive management of allergies, medications, and conditions
+- **Insurance Integration**: Full insurance provider and policy information management
+- **Age Calculation**: Automatic age calculation and updates
+- **Emergency Contacts**: Management of multiple emergency contacts
+- **Data Export**: Ability to export own medical data (GDPR compliance)
 
 ---
 

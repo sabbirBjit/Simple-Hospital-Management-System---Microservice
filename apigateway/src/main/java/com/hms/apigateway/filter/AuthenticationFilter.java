@@ -37,7 +37,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 return chain.filter(exchange);
             }
 
-            // Check for JWT token
+            // Extract JWT token
             String token = extractToken(request);
             
             if (token == null) {
@@ -48,13 +48,25 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
             }
 
-            // Add user info to headers for downstream services
-            String username = jwtUtil.getUserNameFromJwtToken(token);
-            ServerHttpRequest modifiedRequest = request.mutate()
-                    .header("X-User-Name", username)
-                    .build();
-
-            return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            try {
+                // Add user info to headers for downstream services
+                String username = jwtUtil.getUserNameFromJwtToken(token);
+                String userId = jwtUtil.getUserIdFromJwtToken(token);
+                
+                ServerHttpRequest.Builder requestBuilder = request.mutate()
+                        .header("X-User-Name", username);
+                
+                if (userId != null) {
+                    requestBuilder.header("X-User-Id", userId);
+                }
+                
+                ServerHttpRequest modifiedRequest = requestBuilder.build();
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                
+            } catch (Exception e) {
+                logger.error("Error processing JWT token: {}", e.getMessage());
+                return onError(exchange, "Token processing error", HttpStatus.UNAUTHORIZED);
+            }
         };
     }
 
@@ -76,11 +88,14 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(httpStatus);
-        logger.error("Authentication error: {}", err);
-        return response.setComplete();
+        response.getHeaders().add("Content-Type", "application/json");
+        
+        String body = "{\"error\": \"" + err + "\", \"status\": " + httpStatus.value() + "}";
+        var buffer = response.bufferFactory().wrap(body.getBytes());
+        return response.writeWith(Mono.just(buffer));
     }
 
     public static class Config {
-        // Configuration properties if needed
+        // Configuration properties can be added here if needed
     }
 }

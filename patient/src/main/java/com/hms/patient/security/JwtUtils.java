@@ -1,4 +1,4 @@
-package com.hms.apigateway.util;
+package com.hms.patient.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
@@ -9,11 +9,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
-import java.util.Date;
 
 @Component
-public class JwtUtil {
-    private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
+public class JwtUtils {
+    private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -26,17 +25,16 @@ public class JwtUtil {
         return Jwts.parserBuilder().setSigningKey(key()).build()
                .parseClaimsJws(token).getBody().getSubject();
     }
-    
+
     public String getUserIdFromJwtToken(String token) {
         try {
             Claims claims = Jwts.parserBuilder().setSigningKey(key()).build()
                    .parseClaimsJws(token).getBody();
             Long userId = claims.get("userId", Long.class);
-            logger.debug("Extracted userId from token: {}", userId);
             return userId != null ? userId.toString() : null;
         } catch (Exception e) {
             logger.error("Cannot extract userId from JWT token: {}", e.getMessage());
-            return null; // Return null instead of throwing exception in gateway
+            return null;
         }
     }
 
@@ -65,15 +63,5 @@ public class JwtUtil {
             logger.error("JWT claims string is empty: {}", e.getMessage());
         }
         return false;
-    }
-
-    public boolean isTokenExpired(String token) {
-        try {
-            Claims claims = Jwts.parserBuilder().setSigningKey(key()).build()
-                    .parseClaimsJws(token).getBody();
-            return claims.getExpiration().before(new Date());
-        } catch (Exception e) {
-            return true;
-        }
     }
 }

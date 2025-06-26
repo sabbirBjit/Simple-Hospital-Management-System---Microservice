@@ -47,9 +47,17 @@ public class JwtAuthenticationGlobalFilter implements GlobalFilter, Ordered {
         try {
             // Add user info to headers for downstream services
             String username = jwtUtil.getUserNameFromJwtToken(token);
-            ServerHttpRequest modifiedRequest = request.mutate()
-                    .header("X-User-Name", username)
-                    .build();
+            String userId = jwtUtil.getUserIdFromJwtToken(token);
+            
+            ServerHttpRequest.Builder requestBuilder = request.mutate()
+                    .header("X-User-Name", username);
+            
+            // Only add userId header if it's available
+            if (userId != null) {
+                requestBuilder.header("X-User-Id", userId);
+            }
+            
+            ServerHttpRequest modifiedRequest = requestBuilder.build();
 
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
         } catch (Exception e) {

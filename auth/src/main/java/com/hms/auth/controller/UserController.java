@@ -86,4 +86,20 @@ public class UserController {
                     .body(new ApiResponse(false, "Failed to delete user: " + e.getMessage()));
         }
     }
+
+    @GetMapping("/username/{username}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or hasRole('NURSE')")
+    public ResponseEntity<?> getUserByUsername(@PathVariable String username) {
+        try {
+            Optional<UserResponse> user = userService.getUserByUsername(username);
+            if (user.isPresent()) {
+                return ResponseEntity.ok(new ApiResponse(true, "User found", user.get()));
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Failed to retrieve user: " + e.getMessage()));
+        }
+    }
 }

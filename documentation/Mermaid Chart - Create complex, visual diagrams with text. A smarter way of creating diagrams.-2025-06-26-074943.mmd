@@ -1,0 +1,65 @@
+graph TB
+    subgraph "Client Layer"
+        UI[Web/Mobile Client]
+    end
+    
+    subgraph "API Gateway"
+        GW[API Gateway :9000<br/>JWT Auth + CORS]
+    end
+    
+    subgraph "Microservices"
+        AUTH[Auth Service<br/>:8081]
+        PATIENT[Patient Service<br/>:8082]
+        APPOINTMENT[Appointment Service<br/>:8083]
+        NOTIFICATION[Notification Service<br/>:8084]
+    end
+    
+    subgraph "Data Storage"
+        MYSQL[(MySQL Server<br/>4 Databases)]
+    end
+    
+    subgraph "Message Broker"
+        KAFKA[Apache Kafka<br/>Event Streaming]
+    end
+    
+    subgraph "External Services"
+        SMTP[Email Service]
+    end
+    
+    %% Main flow
+    UI -->|API Calls| GW
+    GW -->|Routes & Auth| AUTH
+    GW -->|Routes & Auth| PATIENT
+    GW -->|Routes & Auth| APPOINTMENT
+    GW -->|Routes & Auth| NOTIFICATION
+    
+    %% Service interactions
+    AUTH -.->|Events| KAFKA
+    PATIENT -.->|Events| KAFKA
+    APPOINTMENT -.->|Events| KAFKA
+    KAFKA -.->|Events| NOTIFICATION
+    
+    %% Database connections
+    AUTH --> MYSQL
+    PATIENT --> MYSQL
+    APPOINTMENT --> MYSQL
+    NOTIFICATION --> MYSQL
+    
+    %% External connections
+    NOTIFICATION --> SMTP
+    
+    %% Service-to-service calls
+    PATIENT -.->|Validate| AUTH
+    APPOINTMENT -.->|Validate| PATIENT
+    APPOINTMENT -.->|Validate| AUTH
+    
+    %% Styling
+    style UI fill:#e1f5fe
+    style GW fill:#f3e5f5
+    style AUTH fill:#e8f5e8
+    style PATIENT fill:#fff3e0
+    style APPOINTMENT fill:#e3f2fd
+    style NOTIFICATION fill:#fce4ec
+    style KAFKA fill:#fce4ec
+    style MYSQL fill:#f1f8e9
+    style SMTP fill:#fff8e1

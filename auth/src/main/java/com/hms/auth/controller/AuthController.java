@@ -57,6 +57,30 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/signup/patient")
+    public ResponseEntity<?> registerPatient(@Valid @RequestBody SignupRequest signUpRequest) {
+        try {
+            if (userService.existsByUsername(signUpRequest.getUsername())) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Username is already taken!"));
+            }
+
+            if (userService.existsByEmail(signUpRequest.getEmail())) {
+                return ResponseEntity.badRequest()
+                        .body(new ApiResponse(false, "Email is already in use!"));
+            }
+
+            // Force patient role
+            signUpRequest.setRoles(null); // This will default to ROLE_PATIENT
+
+            userService.createUser(signUpRequest);
+            return ResponseEntity.ok(new ApiResponse(true, "Patient registered successfully! A patient profile has been created for you."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, "Patient registration failed: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");

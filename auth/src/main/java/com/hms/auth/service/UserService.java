@@ -46,13 +46,19 @@ public class UserService {
 
         Set<String> strRoles = signUpRequest.getRoles();
         Set<Role> roles = new HashSet<>();
+        boolean isPatient = false;
 
         if (strRoles == null) {
             Role userRole = roleRepository.findByName(RoleName.ROLE_PATIENT)
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(userRole);
+            isPatient = true;
         } else {
-            strRoles.forEach(role -> {
+            // Check if patient role is in the roles before processing
+            boolean containsPatient = strRoles.contains("patient") || strRoles.stream().noneMatch(role -> 
+                role.equals("admin") || role.equals("doctor") || role.equals("nurse"));
+            
+            for (String role : strRoles) {
                 switch (role) {
                     case "admin":
                         Role adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN)
@@ -73,8 +79,11 @@ public class UserService {
                         Role userRole = roleRepository.findByName(RoleName.ROLE_PATIENT)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(userRole);
+                        break;
                 }
-            });
+            }
+            
+            isPatient = containsPatient || roles.stream().anyMatch(role -> role.getName() == RoleName.ROLE_PATIENT);
         }
 
         user.setRoles(roles);
@@ -82,6 +91,15 @@ public class UserService {
 
         // Send Kafka event when user is created
         kafkaTemplate.send("user.created", "User created: " + savedUser.getUsername());
+        
+        // Send specific event for patient registration
+        if (isPatient) {
+            String patientData = String.format("{\"userId\":%d,\"username\":\"%s\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"phoneNumber\":\"%s\"}", 
+                savedUser.getId(), savedUser.getUsername(), savedUser.getEmail(), 
+                savedUser.getFirstName(), savedUser.getLastName(), 
+                savedUser.getPhoneNumber() != null ? savedUser.getPhoneNumber() : "");
+            kafkaTemplate.send("user.patient.created", patientData);
+        }
 
         return savedUser;
     }
@@ -169,6 +187,11 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         userRepository.delete(user);
+    }
+
+    public Optional<UserResponse> getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .map(this::convertToUserResponse);
     }
 
     private UserResponse convertToUserResponse(User user) {

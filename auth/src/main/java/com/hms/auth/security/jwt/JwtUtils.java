@@ -20,11 +20,15 @@ public class JwtUtils {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expirationMs:86400000}")
     private int jwtExpirationMs;
 
-    @Value("${jwt.refresh-expiration}")
-    private int refreshTokenExpirationMs;
+    @Value("${jwt.refreshExpirationMs:604800000}")
+    private int refreshExpirationMs;
+
+    private Key key() {
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+    }
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
@@ -33,6 +37,10 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
+                .claim("userId", userPrincipal.getId()) // Add userId as claim
+                .claim("email", userPrincipal.getEmail())
+                .claim("firstName", userPrincipal.getFirstName())
+                .claim("lastName", userPrincipal.getLastName())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)
@@ -46,14 +54,11 @@ public class JwtUtils {
 
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
+                .claim("userId", userPrincipal.getId()) // Add userId as claim
                 .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + refreshTokenExpirationMs))
+                .setExpiration(new Date((new Date()).getTime() + refreshExpirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)
                 .compact();
-    }
-
-    private Key key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
 
     public String getUserNameFromJwtToken(String token) {
@@ -65,6 +70,30 @@ public class JwtUtils {
         } catch (Exception e) {
             logger.error("Cannot extract username from JWT token: {}", e.getMessage());
             throw new RuntimeException("Cannot extract username from JWT token", e);
+        }
+    }
+
+    public Long getUserIdFromJwtToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder().setSigningKey(key()).build()
+                   .parseClaimsJws(token).getBody();
+            Long userId = claims.get("userId", Long.class);
+            logger.debug("Extracted userId from token: {}", userId);
+            return userId;
+        } catch (Exception e) {
+            logger.error("Cannot extract userId from JWT token: {}", e.getMessage());
+            throw new RuntimeException("Cannot extract userId from JWT token", e);
+        }
+    }
+
+    public String getEmailFromJwtToken(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder().setSigningKey(key()).build()
+                   .parseClaimsJws(token).getBody();
+            return claims.get("email", String.class);
+        } catch (Exception e) {
+            logger.error("Cannot extract email from JWT token: {}", e.getMessage());
+            throw new RuntimeException("Cannot extract email from JWT token", e);
         }
     }
 
