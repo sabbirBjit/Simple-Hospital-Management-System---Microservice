@@ -42,9 +42,21 @@ public class PatientService {
         Patient patient = mapToEntity(request);
         Patient savedPatient = patientRepository.save(patient);
         
-        // Send Kafka event with error handling
+        // Send Kafka event with proper JSON format and error handling
         try {
-            kafkaTemplate.send("patient.registered", "Patient registered: " + savedPatient.getId());
+            String patientEventData = String.format(
+                "{\"patientId\":%d,\"userId\":%d,\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"phoneNumber\":\"%s\",\"city\":\"%s\",\"state\":\"%s\"}", 
+                savedPatient.getId(),
+                savedPatient.getUserId(),
+                savedPatient.getEmail(),
+                savedPatient.getFirstName(),
+                savedPatient.getLastName(),
+                savedPatient.getPhoneNumber() != null ? savedPatient.getPhoneNumber() : "",
+                savedPatient.getCity() != null ? savedPatient.getCity() : "",
+                savedPatient.getState() != null ? savedPatient.getState() : ""
+            );
+            kafkaTemplate.send("patient.registered", patientEventData);
+            logger.info("Sent patient.registered event for patient ID: {}", savedPatient.getId());
         } catch (Exception e) {
             logger.warn("Failed to send Kafka event for patient registration: {}", e.getMessage());
             // Continue execution - don't fail the operation due to messaging issues

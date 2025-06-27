@@ -8,6 +8,8 @@ import com.hms.auth.model.RoleName;
 import com.hms.auth.model.User;
 import com.hms.auth.repository.RoleRepository;
 import com.hms.auth.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -89,16 +93,38 @@ public class UserService {
         user.setRoles(roles);
         User savedUser = userRepository.save(user);
 
-        // Send Kafka event when user is created
-        kafkaTemplate.send("user.created", "User created: " + savedUser.getUsername());
+        // Send Kafka event when user is created with proper JSON format
+        try {
+            String userEventData = String.format(
+                "{\"userId\":%d,\"username\":\"%s\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"phoneNumber\":\"%s\",\"roles\":[%s]}", 
+                savedUser.getId(), 
+                savedUser.getUsername(), 
+                savedUser.getEmail(), 
+                savedUser.getFirstName(), 
+                savedUser.getLastName(), 
+                savedUser.getPhoneNumber() != null ? savedUser.getPhoneNumber() : "",
+                savedUser.getRoles().stream()
+                    .map(role -> "\"" + role.getName().name() + "\"")
+                    .collect(Collectors.joining(","))
+            );
+            kafkaTemplate.send("user.created", userEventData);
+        } catch (Exception e) {
+            logger.warn("Failed to send user.created Kafka event: {}", e.getMessage());
+        }
         
         // Send specific event for patient registration
         if (isPatient) {
-            String patientData = String.format("{\"userId\":%d,\"username\":\"%s\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"phoneNumber\":\"%s\"}", 
-                savedUser.getId(), savedUser.getUsername(), savedUser.getEmail(), 
-                savedUser.getFirstName(), savedUser.getLastName(), 
-                savedUser.getPhoneNumber() != null ? savedUser.getPhoneNumber() : "");
-            kafkaTemplate.send("user.patient.created", patientData);
+            try {
+                String patientData = String.format(
+                    "{\"userId\":%d,\"username\":\"%s\",\"email\":\"%s\",\"firstName\":\"%s\",\"lastName\":\"%s\",\"phoneNumber\":\"%s\"}", 
+                    savedUser.getId(), savedUser.getUsername(), savedUser.getEmail(), 
+                    savedUser.getFirstName(), savedUser.getLastName(), 
+                    savedUser.getPhoneNumber() != null ? savedUser.getPhoneNumber() : ""
+                );
+                kafkaTemplate.send("user.patient.created", patientData);
+            } catch (Exception e) {
+                logger.warn("Failed to send user.patient.created Kafka event: {}", e.getMessage());
+            }
         }
 
         return savedUser;

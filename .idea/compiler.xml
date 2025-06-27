@@ -9,7 +9,6 @@
         <outputRelativeToContentRoot value="true" />
         <module name="apigateway" />
         <module name="notification" />
-        <module name="appointment" />
       </profile>
       <profile name="Annotation profile for Auth-management" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
@@ -28,6 +27,15 @@
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/unknown/lombok-unknown.jar" />
         </processorPath>
         <module name="patient" />
+      </profile>
+      <profile name="Annotation profile for Appointment" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath>
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.38/lombok-1.18.38.jar" />
+        </processorPath>
+        <module name="appointment" />
       </profile>
     </annotationProcessing>
   </component>
