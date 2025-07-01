@@ -21,12 +21,10 @@ public class Appointment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "patient_id", nullable = false)
-    @NotNull(message = "Patient ID is required")
+    @Column(name = "patient_id")
     private Long patientId;
     
-    @Column(name = "doctor_id", nullable = false)
-    @NotNull(message = "Doctor ID is required")
+    @Column(name = "doctor_id")
     private Long doctorId;
     
     @Column(name = "patient_user_id", nullable = false)
@@ -39,7 +37,6 @@ public class Appointment {
     
     @Column(name = "appointment_date", nullable = false)
     @NotNull(message = "Appointment date is required")
-    @Future(message = "Appointment date must be in the future")
     private LocalDate appointmentDate;
     
     @Column(name = "appointment_time", nullable = false)
@@ -118,3 +115,4 @@ public class Appointment {
         return status == AppointmentStatus.SCHEDULED || status == AppointmentStatus.CONFIRMED;
     }
 }
+

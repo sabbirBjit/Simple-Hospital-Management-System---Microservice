@@ -24,28 +24,37 @@ public interface DoctorAvailabilityRepository extends JpaRepository<DoctorAvaila
     List<DoctorAvailability> findByDoctorUserIdAndIsAvailableTrueOrderByDayOfWeekAscStartTimeAsc(Long doctorUserId);
     
     // Find availability by doctor and day (available only)
+    @Query("SELECT da FROM DoctorAvailability da WHERE da.doctorUserId = :doctorUserId " +
+           "AND da.dayOfWeek = :dayOfWeek AND da.isAvailable = true " +
+           "AND da.startTime != :unavailableTime AND da.endTime != :unavailableTime")
     Optional<DoctorAvailability> findByDoctorUserIdAndDayOfWeekAndIsAvailableTrue(
-        Long doctorUserId, DayOfWeek dayOfWeek);
+        @Param("doctorUserId") Long doctorUserId, 
+        @Param("dayOfWeek") DayOfWeek dayOfWeek,
+        @Param("unavailableTime") LocalTime unavailableTime);
     
     // Check if doctor is available at specific time
     @Query("SELECT da FROM DoctorAvailability da WHERE da.doctorUserId = :doctorUserId " +
            "AND da.dayOfWeek = :dayOfWeek AND da.isAvailable = true " +
+           "AND da.startTime != :unavailableTime AND da.endTime != :unavailableTime " +
            "AND da.startTime <= :time AND da.endTime > :time")
     Optional<DoctorAvailability> findAvailabilityForTime(
         @Param("doctorUserId") Long doctorUserId,
         @Param("dayOfWeek") DayOfWeek dayOfWeek,
-        @Param("time") LocalTime time
+        @Param("time") LocalTime time,
+        @Param("unavailableTime") LocalTime unavailableTime
     );
     
     // Check if time slot is available for duration
     @Query("SELECT da FROM DoctorAvailability da WHERE da.doctorUserId = :doctorUserId " +
            "AND da.dayOfWeek = :dayOfWeek AND da.isAvailable = true " +
+           "AND da.startTime != :unavailableTime AND da.endTime != :unavailableTime " +
            "AND da.startTime <= :startTime AND da.endTime >= :endTime")
     Optional<DoctorAvailability> findAvailabilityForTimeSlot(
         @Param("doctorUserId") Long doctorUserId,
         @Param("dayOfWeek") DayOfWeek dayOfWeek,
         @Param("startTime") LocalTime startTime,
-        @Param("endTime") LocalTime endTime
+        @Param("endTime") LocalTime endTime,
+        @Param("unavailableTime") LocalTime unavailableTime
     );
     
     // Find all available doctors for a specific day and time
@@ -73,9 +82,10 @@ public interface DoctorAvailabilityRepository extends JpaRepository<DoctorAvaila
     // Delete by doctor and day (for updating availability)
     void deleteByDoctorUserIdAndDayOfWeek(Long doctorUserId, DayOfWeek dayOfWeek);
     
-    // Find overlapping availability (for validation)
+    // Find overlapping availability (for validation) - handle unavailable days
     @Query("SELECT da FROM DoctorAvailability da WHERE da.doctorUserId = :doctorUserId " +
-           "AND da.dayOfWeek = :dayOfWeek AND da.id != :excludeId " +
+           "AND da.dayOfWeek = :dayOfWeek AND da.id != :excludeId AND da.isAvailable = true " +
+           "AND da.startTime != :unavailableTime AND da.endTime != :unavailableTime " +
            "AND ((da.startTime <= :startTime AND :startTime < da.endTime) " +
            "OR (:startTime <= da.startTime AND da.startTime < :endTime))")
     List<DoctorAvailability> findOverlappingAvailability(
@@ -83,6 +93,7 @@ public interface DoctorAvailabilityRepository extends JpaRepository<DoctorAvaila
         @Param("dayOfWeek") DayOfWeek dayOfWeek,
         @Param("startTime") LocalTime startTime,
         @Param("endTime") LocalTime endTime,
-        @Param("excludeId") Long excludeId
+        @Param("excludeId") Long excludeId,
+        @Param("unavailableTime") LocalTime unavailableTime
     );
 }

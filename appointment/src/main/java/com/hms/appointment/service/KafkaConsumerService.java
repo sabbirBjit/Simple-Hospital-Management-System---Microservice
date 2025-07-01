@@ -2,16 +2,26 @@ package com.hms.appointment.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hms.appointment.dto.DoctorAvailabilityRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class KafkaConsumerService {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaConsumerService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    @Autowired
+    private DoctorAvailabilityService doctorAvailabilityService;
 
     @KafkaListener(topics = "user.created", groupId = "appointment-service-group")
     public void handleUserCreated(String message) {
@@ -31,7 +41,8 @@ public class KafkaConsumerService {
                     for (JsonNode roleNode : rolesNode) {
                         if ("ROLE_DOCTOR".equals(roleNode.asText())) {
                             logger.info("New doctor registered - userId: {}, name: {} {}", userId, firstName, lastName);
-                            // Future: Could automatically create default availability slots
+                            // Auto-create default availability schedule
+                            createDefaultDoctorSchedule(userId);
                             break;
                         }
                     }
@@ -42,6 +53,34 @@ public class KafkaConsumerService {
             
         } catch (Exception e) {
             logger.error("Error processing user.created event: {}", e.getMessage(), e);
+        }
+    }
+    
+    private void createDefaultDoctorSchedule(Long doctorUserId) {
+        try {
+            List<DoctorAvailabilityRequest> defaultSchedule = new ArrayList<>();
+            
+            // Create default Monday-Friday 9-5 schedule
+            for (DayOfWeek day : DayOfWeek.values()) {
+                DoctorAvailabilityRequest request = new DoctorAvailabilityRequest();
+                request.setDayOfWeek(day);
+                
+                if (day == DayOfWeek.SATURDAY || day == DayOfWeek.SUNDAY) {
+                    request.setIsAvailable(false);
+                } else {
+                    request.setStartTime(LocalTime.of(9, 0));
+                    request.setEndTime(LocalTime.of(17, 0));
+                    request.setIsAvailable(true);
+                }
+                
+                defaultSchedule.add(request);
+            }
+            
+            doctorAvailabilityService.setWeeklySchedule(doctorUserId, defaultSchedule);
+            logger.info("Created default availability schedule for doctor userId: {}", doctorUserId);
+            
+        } catch (Exception e) {
+            logger.error("Error creating default schedule for doctor userId {}: {}", doctorUserId, e.getMessage());
         }
     }
 

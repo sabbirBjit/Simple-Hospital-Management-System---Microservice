@@ -23,12 +23,12 @@ public class DoctorAvailabilityResponse {
     private LocalDateTime updatedAt;
     
     // Computed fields
-    private String dayOfWeekDisplay;
+    private String dayDisplay;
     private String timeSlotDisplay;
     
-    public DoctorAvailabilityResponse(Long id, Long doctorUserId, DayOfWeek dayOfWeek,
-                                     LocalTime startTime, LocalTime endTime, Boolean isAvailable,
-                                     LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public DoctorAvailabilityResponse(Long id, Long doctorUserId, DayOfWeek dayOfWeek, 
+                                    LocalTime startTime, LocalTime endTime, Boolean isAvailable,
+                                    LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.doctorUserId = doctorUserId;
         this.dayOfWeek = dayOfWeek;
@@ -39,7 +39,7 @@ public class DoctorAvailabilityResponse {
         this.updatedAt = updatedAt;
         
         // Set computed fields
-        this.dayOfWeekDisplay = dayOfWeek.toString();
-        this.timeSlotDisplay = String.format("%s - %s", startTime.toString(), endTime.toString());
+        this.dayDisplay = dayOfWeek.toString();
+        this.timeSlotDisplay = startTime.toString() + " - " + endTime.toString();
     }
 }

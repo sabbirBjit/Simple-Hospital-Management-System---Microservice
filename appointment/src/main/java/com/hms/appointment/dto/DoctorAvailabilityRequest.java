@@ -7,20 +7,34 @@ import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DoctorAvailabilityRequest {
     
-    @NotNull(message = "Day of week is required")
+    // Remove @NotNull here since it's optional for weekly schedule requests
     private DayOfWeek dayOfWeek;
     
-    @NotNull(message = "Start time is required")
     private LocalTime startTime;
     
-    @NotNull(message = "End time is required")
     private LocalTime endTime;
     
     private Boolean isAvailable = true;
+    
+    // For weekly schedule setup
+    private Long doctorUserId;
+    private List<DoctorAvailabilityRequest> weeklySchedule;
+    
+    // Add validation method
+    public boolean isValidSingleDayRequest() {
+        return dayOfWeek != null && 
+               (Boolean.FALSE.equals(isAvailable) || 
+                (startTime != null && endTime != null));
+    }
+    
+    public boolean isValidWeeklyScheduleRequest() {
+        return weeklySchedule != null && !weeklySchedule.isEmpty();
+    }
 }

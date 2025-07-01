@@ -18,7 +18,6 @@ public class AppointmentRequest {
     private Long doctorUserId;
     
     @NotNull(message = "Appointment date is required")
-    @Future(message = "Appointment date must be in the future")
     private LocalDate appointmentDate;
     
     @NotNull(message = "Appointment time is required")
@@ -36,3 +35,4 @@ public class AppointmentRequest {
     @Size(max = 2000, message = "Notes must not exceed 2000 characters")
     private String notes;
 }
+

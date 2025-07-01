@@ -12,7 +12,10 @@ import org.springframework.test.context.TestPropertySource;
 	"spring.jpa.hibernate.ddl-auto=create-drop",
 	"spring.datasource.url=jdbc:h2:mem:testdb",
 	"spring.datasource.driver-class-name=org.h2.Driver",
-	"spring.jpa.database-platform=org.hibernate.dialect.H2Dialect"
+	"spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+	"jwt.secret=testSecretKey123456789testSecretKey123456789testSecretKey123456789testSecretKey123456789",
+	"services.auth-service.url=http://localhost:8081",
+	"services.patient-service.url=http://localhost:8082"
 })
 class AppointmentApplicationTests {
 

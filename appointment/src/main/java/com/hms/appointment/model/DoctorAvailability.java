@@ -32,11 +32,9 @@ public class DoctorAvailability {
     private DayOfWeek dayOfWeek;
     
     @Column(name = "start_time", nullable = false)
-    @NotNull(message = "Start time is required")
     private LocalTime startTime;
     
     @Column(name = "end_time", nullable = false)
-    @NotNull(message = "End time is required")
     private LocalTime endTime;
     
     @Column(name = "is_available", nullable = false)
@@ -61,7 +59,12 @@ public class DoctorAvailability {
     
     // Helper methods
     public boolean isTimeSlotAvailable(LocalTime time, int durationMinutes) {
-        if (!isAvailable) {
+        if (!isAvailable || startTime == null || endTime == null) {
+            return false;
+        }
+        
+        // Check if this is an unavailable day (00:00:00 to 00:01:00)
+        if (startTime.equals(LocalTime.of(0, 0)) && endTime.equals(LocalTime.of(0, 1))) {
             return false;
         }
         
@@ -70,6 +73,15 @@ public class DoctorAvailability {
     }
     
     public String getDisplayText() {
+        if (!isAvailable || startTime == null || endTime == null) {
+            return String.format("%s: Not Available", dayOfWeek.toString());
+        }
+        
+        // Check if this is an unavailable day (00:00:00 to 00:01:00)
+        if (startTime.equals(LocalTime.of(0, 0)) && endTime.equals(LocalTime.of(0, 1))) {
+            return String.format("%s: Not Available", dayOfWeek.toString());
+        }
+        
         return String.format("%s: %s - %s", 
             dayOfWeek.toString(), 
             startTime.toString(), 
